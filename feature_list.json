@@ -1,0 +1,80 @@
+{
+  "project": "ejemplo de feature_list.json para Next.js",
+  "description": "Ejemplo de feature_list.json. Sirve como ejemplo didáctico de Harness Engineering para Next.js + TypeScript + Tailwind.",
+  "rules": {
+    "one_feature_at_a_time": true,
+    "require_tests_to_close": true,
+    "valid_status": ["pending", "in_progress", "done", "blocked"]
+  },
+  "features": [
+    {
+      "id": 1,
+      "name": "counter_component",
+      "title": "Componente Counter",
+      "description": "Componente de cliente con botones +/- y valor inicial/paso configurables.",
+      "acceptance": [
+        "Existe components/Counter.tsx",
+        "Props initial y step con valores por defecto 0 y 1",
+        "Botones con aria-label 'incrementar' y 'decrementar'",
+        "components/Counter.test.tsx cubre valor inicial, incremento, decremento y defaults"
+      ],
+      "requires_e2e": false,
+      "status": "done"
+    },
+    {
+      "id": 2,
+      "name": "format_currency_lib",
+      "title": "Función formatCurrency",
+      "description": "Formatea céntimos como moneda localizada, sin tocar el DOM.",
+      "acceptance": [
+        "Existe lib/format-currency.ts con la función formatCurrency",
+        "Soporta currency y locale opcionales",
+        "Lanza RangeError si amountInCents no es entero",
+        "lib/format-currency.test.ts cubre los 4 casos anteriores"
+      ],
+      "requires_e2e": false,
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "name": "home_page_renders",
+      "title": "Home page renderiza el Counter",
+      "description": "La página principal monta el Counter y un test e2e confirma que la app arranca y la página es visible.",
+      "acceptance": [
+        "app/page.tsx renderiza <Counter />",
+        "tests/e2e/home.spec.ts navega a '/' y comprueba que <body> es visible"
+      ],
+      "requires_e2e": true,
+      "status": "done"
+    },
+    {
+      "id": 4,
+      "name": "counter_reset_button",
+      "title": "Botón reset en Counter",
+      "description": "Añade un botón 'reset' al Counter que vuelve el valor a su prop initial (no a 0 a secas, por si initial != 0).",
+      "acceptance": [
+        "Counter.tsx tiene un tercer botón con aria-label 'reiniciar'",
+        "Al hacer click, el valor vuelve exactamente a la prop initial recibida (no a 0 si initial era distinto de 0)",
+        "El botón está deshabilitado (disabled) cuando el valor actual ya es igual a initial",
+        "Counter.test.tsx cubre: reset tras incrementar, reset tras decrementar, y que el botón está disabled en el estado inicial"
+      ],
+      "requires_e2e": false,
+      "status": "done"
+    },
+    {
+      "id": 5,
+      "name": "convex_notes_list",
+      "title": "Lista de notas con Convex (query)",
+      "description": "Define el schema de Convex para 'notes' (title, body, createdAt) y una query 'list' que devuelve las notas ordenadas por createdAt descendente. Esta es la primera feature que toca convex/, así que requiere instalar la dependencia 'convex' y justificarlo en el informe del implementer.",
+      "acceptance": [
+        "Existe convex/schema.ts con la tabla 'notes' (title: string, body: string, createdAt: number)",
+        "Existe convex/notes.ts con una query 'list' exportada que devuelve las notas ordenadas por createdAt descendente",
+        "package.json incluye 'convex' como dependencia, instalada con npm install (no editado a mano)",
+        "El informe del implementer justifica por qué se necesita la dependencia 'convex' (ver regla de dependencias controladas en docs/architecture.md)",
+        "Si el proyecto tiene convex-test instalado, hay un test de la query 'list'; si no, la feature se reporta como blocked explicando que falta decidir si se instala convex-test"
+      ],
+      "requires_e2e": false,
+      "status": "pending"
+    }
+  ]
+}
