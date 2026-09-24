@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+     "convex:data": "node --max-old-space-size=8192 ./node_modules/.bin/convex data rae_words"
   },
   "dependencies": {
     "convex": "^1.42.0",

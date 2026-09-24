@@ -52,4 +52,21 @@ export default defineSchema({
       }),
     ),
   }).index("by_date", ["date"]),
+
+
+  palabrejas_daily: defineTable({
+    date:         v.string(),           // "2025-06-17"
+    letters:      v.array(v.string()),  // 7 letras normalizadas (sin tilde)
+    centerLetter: v.string(),           // letra central obligatoria
+    // Todas las palabras válidas pre-computadas:
+    // solo usan las 7 letras, contienen la central, mínimo 3 letras
+    validWords: v.array(
+      v.object({
+        wordId:          v.id("rae_words"),
+        normalizedLemma: v.string(),    // sin tildes, para comparar con input
+      })
+    ),
+   // true cuando processPalabrejasLetter ha terminado todas las letras
+    done: v.optional(v.boolean()),
+  }).index("by_date", ["date"]),
 });

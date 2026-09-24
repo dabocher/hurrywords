@@ -1,6 +1,6 @@
-// convex/daily.ts
 import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizeStr } from "./palabrejas";
 
 const POOL_SIZE = 36;
 
@@ -15,34 +15,43 @@ export const generateDailyPool = internalMutation({
       .first();
 
     if (existing) {
-      console.log("Pool de " + today + " ya existe.");
+      console.log("Pool diario de " + today + " ya existe.");
       return existing._id;
     }
 
-    const threshold = Math.random();
-    const ids: any[] = [];
+    const palabrejasConfig = await ctx.db
+      .query("palabrejas_daily")
+      .withIndex("by_date", (q) => q.eq("date", today))
+      .first();
 
-    const upper = await ctx.db
-      .query("rae_words")
-      .withIndex("by_random", (q) => q.gte("randomOrder", threshold))
-      .take(POOL_SIZE);
-    for (const w of upper) ids.push(w._id);
-
-    if (ids.length < POOL_SIZE) {
-      const lower = await ctx.db
-        .query("rae_words")
-        .withIndex("by_random", (q) => q.lt("randomOrder", threshold))
-        .take(POOL_SIZE - ids.length);
-      for (const w of lower) ids.push(w._id);
+    if (!palabrejasConfig) {
+      throw new Error(
+        "No existe config de Palabrejas para " + today +
+        ". Ejecuta primero generateDailyPalabrejas."
+      );
     }
 
+    const { validWords } = palabrejasConfig;
+
+    if (validWords.length < POOL_SIZE) {
+      console.warn("Solo hay " + validWords.length + " palabras válidas.");
+    }
+
+    const shuffled = [...validWords];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const selected = shuffled.slice(0, POOL_SIZE);
+    const wordIds  = selected.map((vw) => vw.wordId);
+
     const poolId = await ctx.db.insert("daily_pool", {
-      date: today,
-      wordIds: ids,
+      date:    today,
+      wordIds: wordIds as any,
     });
-    console.log(
-      "Pool de " + today + " creado con " + ids.length + " palabras.",
-    );
+
+    console.log("Pool de " + today + " creado con " + wordIds.length + " palabras.");
     return poolId;
   },
 });

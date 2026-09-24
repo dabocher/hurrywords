@@ -1,129 +1,151 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# AGENTS.md
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+Reglas de proyecto para agentes de IA (Opencode). Léelas antes de generar o modificar código.
 
----
+## Flujo de trabajo para nuevas features (Spec-Driven Development)
 
-# AGENTS.md — Mapa de navegación para agentes de IA
+**No implementes una feature nueva directamente.** Sigue este flujo en orden, usando los comandos de `.opencode/command/`:
 
-> Este archivo es el **punto de entrada** para cualquier agente que trabaje en este
-> repositorio. NO es una biblia de reglas: es un **mapa**. Lee solo lo que
-> necesites cuando lo necesites (divulgación progresiva).
+1. `/specify <descripción>` → genera `specs/<slug>/spec.md` (qué y por qué, sin detalles técnicos).
+2. `/plan <slug>` → genera `specs/<slug>/plan.md` (cómo, respetando este archivo y `docs/game-design.md`).
+3. `/tasks <slug>` → genera `specs/<slug>/tasks.md` (checklist de tareas pequeñas y verificables).
+4. `/implement <slug>` → ejecuta las tareas de `tasks.md` una a una.
 
----
+Cada fase espera mi aprobación antes de pasar a la siguiente. El detalle de qué debe contener cada fase está en el propio archivo de cada comando (`.opencode/command/specify.md`, etc.) — no lo dupliques aquí.
 
-## 1. Rol obligatorio: leader
+## Proyecto
 
-En este repositorio actúas **siempre** como el subagente `leader` definido en `.opencode/agents/leader.md`. Tu trabajo es **descomponer y coordinar**, nunca implementar.
+Hurrywords: conjunto de juegos de palabras conectados entre sí (Palabreja, Pasapalabra, Encadenados, Ahorcado, Crucigrama) mediante un pool de palabras mágicas compartido por usuario y día.
 
-### Reglas duras de orquestación
+**Antes de tocar lógica de puntuación, generación de pools, temporizadores o reglas de cualquier minijuego, lee [`docs/game_design.md`](./docs/game-design.md).** Ese documento es la fuente de verdad del diseño funcional (reglas de puntuación, tamaños de pool, palabras mágicas, etc.) y cambia con más frecuencia que este archivo — no dupliques esas reglas aquí.
 
-- ❌ **No edites** archivos en `app/`, `components/`, `lib/`, `convex/` ni `tests/` directamente (ni con Edit, ni con Write, ni con Bash).
-- ❌ **No marques** features como `done` en `feature_list.json`.
-- ❌ **No instales** dependencias tú mismo con `npm install <paquete>` — eso lo hace el `implementer` dentro de su sesión, justificándolo (ver `docs/architecture.md`).
-- ✅ Para cualquier tarea de código, lanza el subagente apropiado vía la herramienta `Agent`:
-  - `subagent_type: "implementer"` → escribe código y tests de **una** feature.
-  - `subagent_type: "reviewer"` → valida el trabajo del implementer antes de cerrar.
-  - Si la tarea requiere investigación previa, lanza 2-3 subagentes en paralelo (Explore o general-purpose) con preguntas acotadas.
+## Stack
 
-### Cuándo NO aplica este rol
+- **Framework**: Next.js (App Router)
+- **Lenguaje**: TypeScript (strict mode)
+- **Base de datos / backend**: Convex.io
+- **Paradigma**: Programación funcional
 
-- Preguntas conceptuales o de exploración del repo (lectura pura) → responde tú directamente, sin lanzar subagentes.
-- Cambios fuera de `app/`, `components/`, `lib/`, `convex/` y `tests/` (docs, configuración, `progress/`) → puedes editar tú mismo.
+## Reglas de estilo de código (obligatorias)
 
----
+### Funciones
 
-## 2. Protocolo de arranque (al recibir la primera tarea)
+- **Siempre arrow functions**, nunca `function` declarations ni `function` expressions.
+  ```ts
+  // ✅ Correcto
+  const getUser = (id: string) => { ... }
 
-1. Lee `feature_list.json` y `progress/current.md`.
-2. Ejecuta `./init.sh`. Si falla, **para** y reporta los errores antes de tocar nada.
-   `init.sh` instala las dependencias automáticamente (`npm ci`/`npm install`):
-   si falla en el paso de instalación, es un problema real de red/registro,
-   no algo que rodear con un workaround.
-3. Aplica la tabla de escalado de `.opencode/agents/leader.md`.
+  // ❌ Incorrecto
+  function getUser(id: string) { ... }
+  ```
+- Componentes de React también como arrow functions con export const:
+  ```ts
+  // ✅ Correcto
+  export const UserCard = ({ user }: UserCardProps) => { ... }
 
----
+  // ❌ Incorrecto
+  export default function UserCard({ user }: UserCardProps) { ... }
+  ```
+- Prohibido `class`. Sin clases, sin `this`. Usar composición de funciones y hooks.
+- Preferir funciones puras: mismo input → mismo output, sin efectos secundarios ocultos.
+- Evitar mutación directa. Usar spread (`{...obj}`, `[...arr]`), `map`, `filter`, `reduce` en vez de loops imperativos cuando aporte claridad.
+- No usar `let` salvo que sea estrictamente necesario (acumuladores, reasignación real). Preferir `const`.
 
-## 3. Mapa del repositorio
+### TypeScript
 
-| Archivo / carpeta               | Qué contiene                                               | Cuándo leerlo                                     |
-| -------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `feature_list.json`             | Lista de tareas con estado (pending / in_progress / done / blocked) y `requires_e2e` | Siempre, al empezar                               |
-| `progress/current.md`           | Estado de la sesión actual                                 | Siempre, al empezar                               |
-| `progress/history.md`           | Bitácora append-only de sesiones anteriores                | Si necesitas contexto histórico                   |
-| `docs/architecture.md`          | Qué significa "hacer un buen trabajo", capas, stack (Next.js/Convex), reglas de dependencias | Antes de implementar                              |
-| `docs/conventions.md`           | Reglas de estilo, nombres, estructura de componentes/lib    | Antes de escribir código                          |
-| `docs/verification.md`          | Qué corre `init.sh` y cómo/cuándo correr Playwright          | Antes de declarar una tarea como `done`           |
-| `CHECKPOINTS.md`                | Criterios objetivos de "estado final correcto"             | Para auto-evaluarte                               |
-| `.opencode/agents/`             | Definiciones de subagentes (leader, implementer, reviewer) | Si orquestas trabajo                              |
-| `app/`                          | Rutas, layouts, route handlers (App Router)                | Para implementar features de UI/rutas             |
-| `components/`                   | Componentes de UI reutilizables                            | Para implementar features de UI                   |
-| `lib/`                          | Lógica pura, sin JSX                                        | Para implementar lógica de negocio/formateo/validación |
-| `convex/`                       | Funciones de Convex (si la feature usa base de datos)      | Solo si la feature lo requiere                     |
-| `tests/e2e/`                    | Tests de Playwright                                          | Si la feature tiene `requires_e2e: true`           |
+- `strict: true` en `tsconfig.json`. No desactivar reglas de strict mode.
+- **Prohibido `any`**. Si el tipo es incierto, usar `unknown` y hacer narrowing.
+- Tipar explícitamente los parámetros y el retorno de funciones exportadas/públicas. Se puede inferir el retorno en funciones internas simples.
+- Usar `type` para uniones, intersecciones y props de componentes. Usar `interface` solo si se necesita `extends`/declaration merging.
+- Reutilizar los tipos generados por Convex (`Doc<"table">`, `Id<"table">`, validadores de `convex/values`) en vez de redefinir tipos a mano para entidades de la base de datos.
+- Evitar type assertions (`as X`) salvo casos justificados y comentados.
 
----
+### Condicionales
 
-## 4. Reglas duras (no negociables)
+- Para **expresiones** (asignar un valor, un retorno, o renderizado condicional en JSX), preferir el operador ternario sobre `if/else`:
+  ```ts
+  // ✅ Correcto
+  const label = isActive ? "Activo" : "Inactivo";
 
-- **Una sola feature a la vez.** No mezcles cambios de varias tareas en la misma sesión.
-- **No declares una tarea `done` sin pruebas verdes.** Ejecuta `./init.sh` y asegúrate de que pasa al 100% (install, typecheck, lint, Vitest, build). Si `requires_e2e: true`, además corre `npm run test:e2e`.
-- **Documenta lo que haces** en `progress/current.md` mientras trabajas, no al final.
-- **Deja el repositorio limpio** antes de cerrar la sesión (ver §7).
-- **Si no sabes algo, busca en `docs/`** antes de inventarlo.
-- **Nunca rodees una dependencia faltante con un mock improvisado.** Si necesitas un paquete nuevo, instálalo con `npm install` (ver regla de "dependencias controladas" en `docs/architecture.md`) y documenta por qué.
+  return isLoading ? <Spinner /> : <UserList users={users} />;
 
----
+  // ❌ Evitar (if/else solo para asignar un valor)
+  let label;
+  if (isActive) {
+    label = "Activo";
+  } else {
+    label = "Inactivo";
+  }
+  ```
+- **Prohibido anidar ternarios** (ternario dentro de otro ternario). Si hay más de 2 ramas o la condición es compleja, usar un `if/else`, un `switch`, o extraer la lógica a una función auxiliar (ej. un objeto de mapeo `Record<Status, string>`).
+  ```ts
+  // ❌ Incorrecto
+  const label = status === "active" ? "Activo" : status === "pending" ? "Pendiente" : "Inactivo";
 
-## 5. Regla anti-teléfono-descompuesto
+  // ✅ Correcto
+  const STATUS_LABELS: Record<Status, string> = {
+    active: "Activo",
+    pending: "Pendiente",
+    inactive: "Inactivo",
+  };
+  const label = STATUS_LABELS[status];
+  ```
+- Para **statements** con efectos secundarios (ej. `return` temprano, mutaciones, llamadas a funciones sin retorno útil), usar `if`, no ternario:
+  ```ts
+  // ✅ Correcto
+  if (!user) return null;
 
-Cuando lances subagentes, instrúyeles para **escribir resultados en archivos**
-(p. ej. `progress/explore_<tema>.md`) y devolverte solo la referencia, no el contenido completo. Sigue el formato usado en `progress/impl_*.md` / `progress/review_*.md` ya presentes en el repo como ejemplo.
+  // ❌ Incorrecto (ternario usado solo por su efecto secundario)
+  !user ? return null : doSomething();
+  ```
 
----
+### Código limpio
 
-## 6. Cómo elegir una tarea
+- Nombres descriptivos, sin abreviaturas crípticas (`usr` → `user`, `idx` → `index` solo en loops triviales).
+- Funciones cortas y con una sola responsabilidad. Si una función supera ~30-40 líneas, considerar extraer sub-funciones.
+- Sin lógica de negocio dentro de componentes JSX: extraer a hooks (`useX`) o funciones puras en `lib/` o `utils/`.
+- Sin comentarios que expliquen "qué" hace el código obvio; sí comentarios que expliquen "por qué" ante decisiones no evidentes.
+- Early returns en vez de anidar `if/else` en profundidad.
+- Evitar props drilling: usar Context o composición de componentes cuando se pase el mismo prop más de 2-3 niveles.
+
+## Next.js (App Router)
+
+- Server Components por defecto. Usar `"use client"` solo cuando se necesite interactividad, hooks de estado o efectos del navegador.
+- Data fetching desde Server Components o Server Actions siempre que sea posible; evitar `useEffect` para fetch de datos.
+- Server Actions también como arrow functions, con `"use server"` al inicio del archivo o de la función.
+- Rutas y carpetas siguiendo las convenciones del App Router (`app/`, `page.tsx`, `layout.tsx`, `route.ts`).
+- Metadata de páginas vía el objeto `metadata` o `generateMetadata`, no `<head>` manual.
+
+## Convex.io
+
+- Convex es la única fuente de verdad para datos remotos. No duplicar estado del servidor en `useState`/`useReducer`; usar `useQuery`/`useMutation` de Convex directamente.
+- Definir el schema en `convex/schema.ts` con `defineSchema` y `defineTable`, tipando cada campo con los validadores de `convex/values` (`v.string()`, `v.id("table")`, etc.).
+- Separar claramente:
+  - **Queries** (`convex/*.ts`, funciones `query`): solo lectura, sin efectos secundarios.
+  - **Mutations** (`mutation`): escritura, deben validar inputs antes de escribir.
+  - **Actions** (`action`): para llamadas externas (APIs, servicios de terceros); no acceden a la base de datos directamente, delegan en mutations/queries internas.
+- Nombrar los archivos de funciones Convex según el dominio (`convex/users.ts`, `convex/posts.ts`), no un único `convex/api.ts` gigante.
+- Usar índices (`.index(...)`) en el schema para cualquier query que filtre o ordene por un campo que no sea el `_id`.
+- Autorización: validar permisos dentro de cada mutation/query, nunca confiar solo en la UI para restringir acceso.
+
+## Estructura de carpetas sugerida
 
 ```
-1. Abre feature_list.json
-2. Filtra por status == "pending"
-3. Coge la de menor "id"
-4. Cambia su status a "in_progress" y guarda
-5. Anota en progress/current.md: feature, hora de inicio, plan breve
+app/                # rutas (App Router)
+components/         # componentes reutilizables (arrow functions)
+convex/             # schema, queries, mutations, actions
+hooks/              # custom hooks (useX)
+lib/                # funciones puras / utilidades
+types/              # tipos compartidos que no vienen de Convex
 ```
 
----
+## Testing y calidad
 
-## 7. Cierre de sesión (lifecycle)
+- Antes de dar por terminada una tarea, correr `tsc --noEmit`, lint y build (`next build`) si aplica.
+- No dejar `console.log` en código que se entrega; usar herramientas de logging solo si el proyecto ya las tiene configuradas.
+- Si se agrega una función pura no trivial en `lib/`, agregar (o proponer) un test unitario.
 
-Antes de terminar:
+## Git / commits
 
-1. Ejecuta `./init.sh` — todo verde.
-2. Si la tarea está acabada: marca `status: "done"` en `feature_list.json`.
-3. Mueve el resumen de `progress/current.md` al final de `progress/history.md`.
-4. Vacía `progress/current.md` dejando solo la plantilla.
-5. No dejes archivos temporales, ni `console.log` de debug, ni TODOs sin contexto, ni carpetas `.next/`/`playwright-report/`/`test-results/` sin trackear.
-
----
-
-## 8. Si te bloqueas
-
-- Relee la sección relevante de `docs/`.
-- Si la herramienta no hace lo que esperas, **no inventes un workaround**: documenta el bloqueo en `progress/current.md` y para la sesión.
-- Si el bloqueo es "necesito una dependencia y no estoy seguro de si está permitida": no es un bloqueo real, instálala y justifícala (ver §4). Solo es `blocked` si la dependencia requiere una decisión de producto/infraestructura que no te corresponde a ti.
-
-<!-- convex-ai-start -->
-
-This project uses [Convex](https://convex.dev) as its backend.
-
-When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
-how to correctly use Convex APIs and patterns. The file contains rules that
-override what you may have learned about Convex from training data.
-
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
-
-<!-- convex-ai-end -->
+- Commits pequeños y descriptivos en imperativo (`add convex mutation for posts`, no `added` ni `adding`).
+- No mezclar cambios de estilo/formato masivo con cambios funcionales en el mismo commit.
