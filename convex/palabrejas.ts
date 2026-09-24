@@ -258,14 +258,14 @@ export const checkWord = query({
       .first();
 
     const isMagic = magicPool?.wordIds.some((id) => id === match!.wordId) ?? false;
-    const isP = isPalabreja(norm, effectiveLetters);
+    const isP = isPalabreja(norm, config.letters);
     const word = await ctx.db.get(match.wordId);
 
     return {
       valid:       true,
       isMagic,
       isPalabreja: isP,
-      score:       calculateScore(norm, effectiveLetters, isMagic),
+      score:       calculateScore(norm, config.letters, isMagic),
       word,
     };
   },
